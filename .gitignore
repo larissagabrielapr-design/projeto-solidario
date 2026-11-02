@@ -1,0 +1,24 @@
+node_modules/
+.next/
+.env
+.env.*
+!.env.example
+backups/
+*.backup.json
+*.tsbuildinfo
+
+.migration-tests-*/
+
+# Cloudflare e artefatos locais
+.wrangler/
+.open-next/
+.dev.vars
+.dev.vars.*
+!.dev.vars.example
+dist/
+out/
+.pnpm-store/
+coverage/
+*.log
+.DS_Store
+Thumbs.db

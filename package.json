@@ -1,0 +1,39 @@
+{
+  "name": "projeto-ibpv-solidario",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=22.13.0"
+  },
+  "scripts": {
+    "dev": "node scripts/dev.mjs",
+    "test:local": "node --env-file-if-exists=.env scripts/test-local-cloudflare.mjs",
+    "build": "next build",
+    "build:cloudflare": "opennextjs-cloudflare build && node scripts/clean-worker-env.mjs",
+    "deploy": "npm run build:cloudflare && opennextjs-cloudflare deploy",
+    "start": "next start",
+    "db:migrate": "node scripts/db-migrate.mjs",
+    "migration:import": "node scripts/import-backup.mjs",
+    "admin:password": "node scripts/admin-password.mjs",
+    "test": "node scripts/test-migration.mjs"
+  },
+  "dependencies": {
+    "@opennextjs/cloudflare": "^1.20.15",
+    "lucide-react": "^1.31.0",
+    "next": "^16.4.3",
+    "pg": "^8.16.3",
+    "react": "19.2.6",
+    "react-dom": "19.2.6"
+  },
+  "devDependencies": {
+    "@electric-sql/pglite": "^0.5.14",
+    "@types/node": "22.19.19",
+    "@types/pg": "^8.15.4",
+    "@types/react": "19.2.14",
+    "@types/react-dom": "19.2.3",
+    "miniflare": "^4.20260730.0",
+    "typescript": "5.9.3",
+    "wrangler": "^4.156.1"
+  }
+}
