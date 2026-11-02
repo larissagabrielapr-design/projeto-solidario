@@ -13,8 +13,8 @@ const client={async query(text,values){if(text.trim().startsWith('SELECT pg_advi
 const pool={query:(...args)=>client.query(...args),connect:async()=>client};const db=new PostgresDatabase(()=>pool);
 const temp=fs.mkdtempSync(path.resolve('.migration-tests-'));let checks=0;
 const equal=(a,b)=>{assert.deepEqual(a,b);checks++};const ok=v=>{assert.ok(v);checks++};
-const mapping={"'../../../db/runtime'":"'./environment.mjs'","'../../db/runtime'":"'./environment.mjs'","'next/headers'":"'./context.mjs'","'../chatgpt-auth'":"'./platform.mjs'","'../../chatgpt-auth'":"'./platform.mjs'","'./domain'":"'./domain.mjs'","'../../lib/domain'":"'./domain.mjs'","'./password-crypto'":"'./password-crypto.mjs'","'../../lib/password-crypto'":"'./password-crypto.mjs'","'../../lib/app-auth'":"'./app-auth.mjs'","'../../lib/backup-format.mjs'":"'./backup-format.mjs'"};
-for(const [source,target]of Object.entries({'app/lib/domain.ts':'domain.mjs','app/lib/password-crypto.ts':'password-crypto.mjs','app/lib/app-auth.ts':'app-auth.mjs','app/api/auth/route.ts':'auth-route.mjs','app/api/project/route.ts':'project-route.mjs','app/api/backup/route.ts':'backup-route.mjs'})){let code=fs.readFileSync(source,'utf8').replace("console.error('auth-api-failure')","console.error('auth-api-failure',e.message)").replaceAll("process.env.NODE_ENV!=='production'",'true');for(const [a,b]of Object.entries(mapping))code=code.replaceAll(a,b);fs.writeFileSync(path.join(temp,target),ts.transpileModule(code,{compilerOptions:{target:ts.ScriptTarget.ES2022,module:ts.ModuleKind.ESNext}}).outputText)}
+const mapping={"'../../../db/runtime'":"'./environment.mjs'","'../../db/runtime'":"'./environment.mjs'","'next/headers'":"'./context.mjs'","'../chatgpt-auth'":"'./platform.mjs'","'../../chatgpt-auth'":"'./platform.mjs'","'../app/lib/domain'":"'./domain.mjs'","'../app/lib/password-crypto'":"'./password-crypto.mjs'","'./domain'":"'./domain.mjs'","'../../lib/domain'":"'./domain.mjs'","'./password-crypto'":"'./password-crypto.mjs'","'../../lib/password-crypto'":"'./password-crypto.mjs'","'../../lib/app-auth'":"'./app-auth.mjs'","'../../lib/backup-format.mjs'":"'./backup-format.mjs'"};
+for(const [source,target]of Object.entries({'db/bootstrap-admin.ts':'bootstrap-admin.mjs','app/lib/domain.ts':'domain.mjs','app/lib/password-crypto.ts':'password-crypto.mjs','app/lib/app-auth.ts':'app-auth.mjs','app/api/auth/route.ts':'auth-route.mjs','app/api/project/route.ts':'project-route.mjs','app/api/backup/route.ts':'backup-route.mjs'})){let code=fs.readFileSync(source,'utf8').replace("console.error('auth-api-failure')","console.error('auth-api-failure',e.message)").replaceAll("process.env.NODE_ENV!=='production'",'true');for(const [a,b]of Object.entries(mapping))code=code.replaceAll(a,b);fs.writeFileSync(path.join(temp,target),ts.transpileModule(code,{compilerOptions:{target:ts.ScriptTarget.ES2022,module:ts.ModuleKind.ESNext}}).outputText)}
 fs.copyFileSync('app/lib/backup-format.mjs',path.join(temp,'backup-format.mjs'));
 fs.writeFileSync(path.join(temp,'environment.mjs'),'export const env={DB:null};export async function ensureAdmin(){}');
 fs.writeFileSync(path.join(temp,'context.mjs'),`import {AsyncLocalStorage} from 'node:async_hooks';const store=new AsyncLocalStorage();export async function headers(){return store.getStore()||new Headers()}export function withRequest(req,fn){return store.run(req.headers,fn)}`);
@@ -29,6 +29,14 @@ try{
  assert.throws(()=>crypto.requireSameOrigin(new Request('http://internal:3000/api/auth',{headers:{origin:'https://attacker.example','x-forwarded-host':'new-host.example','x-forwarded-proto':'https'}})));checks++;
  equal((await request('project')).status,401);equal((await request('project',null,{forged:true})).status,401);
  equal((await request('auth',{action:'register',name:'Not an administrator',email:'stranger@example.test',password:'1234567',role:'admin'})).status,503);
+ const {bootstrapAdmin}=await mod('bootstrap-admin.mjs');
+ const bootstrapRows=[];let bootstrapExisting=false;
+ const bootstrapDb={prepare(sql){return {bind(...values){return {sql,values}},async first(){return bootstrapExisting?{id:1}:null}}},async batch(rows){bootstrapRows.push(...rows);bootstrapExisting=true}};
+ await bootstrapAdmin(bootstrapDb,{ADMIN_EMAIL:' Local-Admin ',ADMIN_PASS:'x'.repeat(140)});
+ equal(bootstrapRows.length,2);equal(bootstrapRows[1].values[1],'local-admin');ok(bootstrapRows[1].values[3].startsWith('env-password:'));
+ ok(await crypto.verifyPassword('x'.repeat(140),bootstrapRows[1].values[5],bootstrapRows[1].values[4],true));
+ equal(await crypto.verifyPassword('x'.repeat(140),bootstrapRows[1].values[5],bootstrapRows[1].values[4]),false);
+ await bootstrapAdmin(bootstrapDb,{ADMIN_EMAIL:'another',ADMIN_PASS:'a'});equal(bootstrapRows.length,2);
  const state=domain.startState({userId:'source-owner',email:'owner@example.test',displayName:'Administração de teste'}),owner=state.members[0];
  const mutate=(action,payload)=>domain.mutate(state,owner,'admin',action,payload);
  mutate('family.save',{name:'Família pequena',phone:'11900000000',address:'Rua de Teste, 10',neighborhood:'Olaria',residents:2});mutate('family.save',{name:'Família grande',phone:'11900000001',address:'Rua de Teste, 20',neighborhood:'Centro',residents:5});
@@ -62,5 +70,9 @@ try{
  equal(await db.prepare('SELECT key FROM auth_limits WHERE key=?').bind('rollback-check').first(),null);equal((await pg.query('SELECT count(*) AS n FROM auth_credentials')).rows[0].n,before);
  equal((await request('auth',{action:'login',email:owner.email,password:'wrong'})).status,401);equal((await request('auth',{action:'logout'},{cookie:ownerCookie,origin:'https://attacker.example'})).status,403);
  equal((await request('auth',{action:'logout'},{cookie:ownerCookie})).status,200);equal((await request('project',null,{cookie:ownerCookie})).status,401);
+ await db.prepare('INSERT INTO auth_credentials(id,email,name,principal,password_hash,salt,created_at) VALUES(?,?,?,?,?,?,?)').bind('env-test','local-admin','Env test',bootstrapRows[1].values[3],bootstrapRows[1].values[4],bootstrapRows[1].values[5],new Date().toISOString()).run();
+ equal((await request('auth',{action:'login',email:'LOCAL-ADMIN',password:'x'.repeat(140)})).status,200);
+ equal((await request('auth',{action:'login',email:'local-admin',password:'wrong'})).status,401);
+ equal((await request('auth',{action:'register',name:'Invalid email',email:'no-email',password:'abcdefg'})).status,400);
  console.log(`${checks} PostgreSQL migration checks passed: schema, import integrity, preserved passwords, authorization, approvals, accounting, withdrawals and rollback.`);
 }finally{await pg.close();fs.rmSync(temp,{recursive:true,force:true})}

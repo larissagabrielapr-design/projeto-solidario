@@ -15,7 +15,7 @@ A configuração está em `wrangler.jsonc`. O binding DB usa D1 de produção, s
 O build remove `.env` do pacote gerado e limpa as variáveis locais compiladas. Configure segredos apenas no painel do Worker:
 
 - ADMIN_EMAIL: e-mail do administrador inicial.
-- ADMIN_PASS: senha privada com pelo menos 12 caracteres.
+- ADMIN_PASS: senha privada sem restrição de tamanho no bootstrap.
 - PUBLIC_ORIGIN: origem HTTPS exata do site, sem caminho (opcional; recomendado).
 
 Após salvar e publicar os secrets, abra `/acesso` para criar o primeiro administrador em um banco vazio. Entre pela tela com essas credenciais. O bootstrap nunca sobrescreve um projeto existente. Se PUBLIC_ORIGIN estiver configurado, ele precisa corresponder à URL usada para login.

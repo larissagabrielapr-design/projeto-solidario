@@ -7,7 +7,7 @@
 - Registre decisões aprovadas em `docs/decisoes/`; propostas devem permanecer explicitamente pendentes.
 - Use npm e `package-lock.json` como referência de instalação. Não introduza outros lockfiles.
 - Nunca registre credenciais, dados reais de famílias ou backups no Git ou na documentação.
-- Preserve permissões e regras de negócio. Não crie senha padrão. O bootstrap autorizado usa ADMIN_EMAIL/ADMIN_PASS em banco vazio; em produção exige secrets Cloudflare e senha de pelo menos 12 caracteres. Nunca sobrescreva contas existentes.
+- Preserve permissões e regras de negócio. Não crie senha padrão. O bootstrap autorizado usa ADMIN_EMAIL/ADMIN_PASS em banco vazio; em produção exige secrets Cloudflare. Credenciais de bootstrap por ambiente não têm regras de formato/tamanho (decisão 0003); cadastros públicos mantêm suas validações. Nunca sobrescreva contas existentes.
 - Valide alterações com os comandos relevantes: `npm test` para regras/dados e `npm run build` para aplicação. Informe limitações reais da validação.
 - Deploy só está pronto após teste no runtime do Workers. Build local do Next.js sozinho não comprova compatibilidade.
 - Não publique nem migre dados reais sem autorização explícita.
@@ -15,7 +15,7 @@
 
 <!-- BEGIN:nextjs-agent-rules -->
 
-# This is NOT the Next.js you know
+## This is NOT the Next.js you know
 
 This version has breaking changes — APIs, conventions, and file structure may all differ from your training data. Read the relevant guide in `node_modules/next/dist/docs/` (resolved from this file's directory; in monorepos the `next` package may not be visible from the repo root) before writing any code. Heed deprecation notices.
 

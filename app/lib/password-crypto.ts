@@ -14,7 +14,7 @@ export function validateName(value:unknown):string{const name=String(value??'').
 export function randomToken(){const bytes=new Uint8Array(32);crypto.getRandomValues(bytes);return Buffer.from(bytes).toString('base64url')}
 export async function tokenHash(token:string){return Buffer.from(await crypto.subtle.digest('SHA-256',encoder.encode(token))).toString('hex')}
 export async function hashPassword(password:string){validatePassword(password);const salt=randomToken();return {salt,passwordHash:(await derive(password,salt)).toString('hex')}}
-export async function verifyPassword(password:string,salt:string,expected:string){if(password.length>128||!/^[a-f0-9]{128}$/.test(expected))return false;const computed=await derive(password,salt);const target=Buffer.from(expected,'hex');return computed.length===target.length&&timingSafeEqual(computed,target)}
+export async function verifyPassword(password:string,salt:string,expected:string,environmentCredential=false){if((!environmentCredential&&password.length>128)||!/^[a-f0-9]{128}$/.test(expected))return false;const computed=await derive(password,salt);const target=Buffer.from(expected,'hex');return computed.length===target.length&&timingSafeEqual(computed,target)}
 export function requireSameOrigin(req:Request){
  const actual=req.headers.get('origin'),url=new URL(req.url),configured=process.env.PUBLIC_ORIGIN?.trim();
  if(configured){demand(actual===new URL(configured).origin,'Origem não autorizada.',403);return}

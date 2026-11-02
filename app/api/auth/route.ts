@@ -16,11 +16,12 @@ export async function POST(req:Request){try{
  requireSameOrigin(req);demand(env.DB,'Banco de dados indisponível.',503);const db=env.DB;const p=await readSmallJson(req);const action=String(p.action||'');
  if(action==='logout'){const tokens=getTokens(req.headers.get('cookie'));if(tokens.length)await db.batch(await Promise.all(tokens.map(async token=>db.prepare('DELETE FROM auth_sessions WHERE token_hash=?').bind(await tokenHash(token)))));return json({ok:true},200,expiredSessionCookies())}
  if(action==='login'){
-  const email=normalizeEmail(p.email),password=String(p.password||'');await limit(req,action,email);
+  const email=String(p.email??'').trim().toLowerCase(),password=String(p.password??'');await limit(req,action,email);
   const c=await db.prepare('SELECT * FROM auth_credentials WHERE email=?').bind(email).first<Credential>();
+  if(!c?.principal.startsWith('env-password:'))normalizeEmail(p.email);
   // Derive a dummy hash for missing accounts to avoid a fast account-existence check.
   const salt=c?.salt||'solidario-nonexistent-account-salt';const expected=c?.password_hash||'0'.repeat(128);
-  const valid=await verifyPassword(password,salt,expected);demand(c&&valid&&!c.blocked,'E-mail ou senha incorretos.',401);
+  const valid=await verifyPassword(password,salt,expected,c?.principal.startsWith('env-password:'));demand(c&&valid&&!c.blocked,'E-mail ou senha incorretos.',401);
   const s=await loadProject(),member=s?.members.find(m=>m.userId===c.principal);demand(!member||member.active,'Seu acesso está desativado. Procure a administração.',403);
   const token=await createSession(c);return json({ok:true,pending:!member},200,sessionCookie(token));
  }

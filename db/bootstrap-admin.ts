@@ -1,5 +1,5 @@
 import { startState } from '../app/lib/domain';
-import { normalizeEmail, randomToken, SCRYPT } from '../app/lib/password-crypto';
+import { randomToken, SCRYPT } from '../app/lib/password-crypto';
 import { scrypt } from 'node:crypto';
 import type { PostgresDatabase } from './adapter.mjs';
 
@@ -14,11 +14,9 @@ export async function bootstrapAdmin(db: PostgresDatabase, production?: {ADMIN_E
   if (await db.prepare('SELECT id FROM auth_credentials LIMIT 1').first()) {
     throw new Error('Existem contas locais sem projeto. O administrador não foi criado para preservar os dados.');
   }
-  const email = normalizeEmail(rawEmail), password = rawPassword;
-  if (password.length > 128) throw new Error('ADMIN_PASS deve ter no máximo 128 caracteres.');
-  if (production && password.length < 12) throw new Error('ADMIN_PASS de produção precisa ter pelo menos 12 caracteres.');
-  const id = crypto.randomUUID(), principal = 'password:' + id;
-  // Explicitly configured local bootstrap may use short development credentials.
+  const email = rawEmail.trim().toLowerCase(), password = rawPassword;
+  const id = crypto.randomUUID(), principal = 'env-password:' + id;
+  // Environment bootstrap credentials bypass format and length policies.
   // Public registration and password changes retain the normal password policy.
   const salt = randomToken();
   const passwordHash = await new Promise<string>((resolve, reject) =>

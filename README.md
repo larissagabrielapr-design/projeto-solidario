@@ -31,7 +31,7 @@ ADMIN_EMAIL=seu-email@exemplo.com
 ADMIN_PASS="escolha uma senha privada"
 ```
 
-Use uma senha de 7 a 128 caracteres. Os nomes `admin_email` e `admin_pass` também são aceitos; prefira a forma maiúscula. Não envie o `.env` ao Git.
+As credenciais de bootstrap por ambiente não têm validação de formato ou tamanho; ambos os valores devem estar preenchidos. Os nomes `admin_email` e `admin_pass` também são aceitos; prefira a forma maiúscula. Não envie o `.env` ao Git.
 
 Inicie tudo com:
 
@@ -50,7 +50,7 @@ O terminal mostra os links. Aguarde `Ready` e a confirmação de D1/R2:
 
 Entre com o e-mail e a senha definidos no `.env`. A conta administrativa permite gerenciar equipe, aprovar cadastros e ajustar permissões pelos fluxos existentes.
 
-O administrador é criado somente na primeira inicialização de um banco local vazio. A senha fica protegida com scrypt no banco. Alterar as variáveis depois não troca a senha nem promove contas existentes. Não há login automático nem senha padrão. As variáveis de bootstrap são ignoradas em produção.
+O administrador é criado somente na primeira inicialização de um banco local vazio. A senha fica protegida com scrypt no banco. Alterar as variáveis depois não troca a senha nem promove contas existentes. Não há login automático nem senha padrão. Em produção, o bootstrap usa secrets do Worker, sem ler o .env local.
 
 Use `Ctrl + C` para encerrar. Reinicie após alterar as variáveis do `.env`. Se uma porta estiver ocupada, encerre a instância anterior.
 
@@ -74,7 +74,7 @@ npm run build
 
 O destino escolhido é Workers com D1 e, quando necessário, R2. O adaptador OpenNext e o binding D1 de produção estão configurados em `wrangler.jsonc`. Use `npm run deploy` para compilar e publicar. `npm start` é o servidor Node do Next.js, não um deploy Cloudflare.
 
-Configure ADMIN_EMAIL e ADMIN_PASS como secrets do Worker (senha de produção com pelo menos 12 caracteres) e abra `/acesso` para iniciar o banco vazio. PUBLIC_ORIGIN pode conter a origem HTTPS exata do site. Consulte `docs/cloudflare.md`. Rotinas PostgreSQL existentes em `scripts/` são legadas e não importam dados automaticamente no D1.
+Configure ADMIN_EMAIL e ADMIN_PASS como secrets do Worker (senha privada de produção) e abra `/acesso` para iniciar o banco vazio. PUBLIC_ORIGIN pode conter a origem HTTPS exata do site. Consulte `docs/cloudflare.md`. Rotinas PostgreSQL existentes em `scripts/` são legadas e não importam dados automaticamente no D1.
 
 ## Organização
 
